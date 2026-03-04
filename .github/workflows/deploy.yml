@@ -1,0 +1,37 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: 22
+          script: |
+            set -e
+            cd /home/ec2-user
+            if [ ! -d "imc-devops" ]; then
+              git clone https://github.com/${{ github.repository }}.git imc-devops
+              cd imc-devops
+            else
+              cd imc-devops
+              git fetch origin main
+              git reset --hard origin/main
+            fi
+            docker compose down 2>/dev/null || true
+            docker compose up --build -d
