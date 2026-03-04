@@ -34,4 +34,5 @@ jobs:
               git reset --hard origin/main
             fi
             docker-compose down 2>/dev/null || true
-            docker-compose up --build -d
+            docker build -t imc-devops-imc-app .
+            docker-compose up -d --no-build
